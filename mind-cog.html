@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIND 2.0: Modelo de Integración Neurocognitiva Dinámica</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <!-- Custom Palette and Styles -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        mind: {
+                            base: '#0f172a', // Slate 900
+                            primary: '#3b82f6', // Blue 500
+                            secondary: '#06b6d4', // Cyan 500
+                            accent: '#8b5cf6', // Violet 500
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out',
+                        'slide-up': 'slideUp 0.4s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 350px;
+            max-height: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .mind-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border-radius: 0.75rem;
+        }
+
+        .gradient-text {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(to right, #2563eb, #06b6d4);
+        }
+
+        .section-divider {
+            height: 4px;
+            background: linear-gradient(to right, #e2e8f0, #3b82f6, #e2e8f0);
+            margin: 3rem 0;
+            border-radius: 2px;
+        }
+
+        /* Interactive Logic Block Styling */
+        .logic-block {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .logic-block::after {
+            content: 'ℹ️ Ver más';
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            font-size: 0.7rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            color: currentColor;
+        }
+        .logic-block:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.15);
+            border-color: #3b82f6;
+        }
+        .logic-block:hover::after {
+            opacity: 0.7;
+        }
+
+        /* Modal Styles */
+        .modal-backdrop {
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- MODAL COMPONENT (Hidden by default) -->
+    <div id="infoModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 modal-backdrop opacity-0 transition-opacity duration-300" onclick="closeModal(event)">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh]" id="modalContent">
+            <!-- Modal Header -->
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-slate-50 to-white rounded-t-2xl">
+                <div>
+                    <h3 id="modalTitle" class="text-2xl font-bold text-slate-800">Título</h3>
+                    <p id="modalSubtitle" class="text-sm font-semibold text-blue-600 uppercase tracking-wide mt-1">Categoría</p>
+                </div>
+                <button onclick="forceCloseModal()" class="text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-full hover:bg-slate-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <!-- Modal Body -->
+            <div class="p-8 overflow-y-auto">
+                <div class="mb-6">
+                    <h4 class="text-sm font-bold text-slate-400 uppercase mb-2">Definición Funcional</h4>
+                    <p id="modalDesc" class="text-slate-700 text-lg leading-relaxed">Descripción...</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                        <h4 class="flex items-center text-sm font-bold text-blue-800 mb-2">
+                            <span class="mr-2 text-xl">📚</span> Modelos Teóricos
+                        </h4>
+                        <p id="modalModels" class="text-sm text-blue-900">Modelos...</p>
+                    </div>
+                    
+                    <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                        <h4 class="flex items-center text-sm font-bold text-indigo-800 mb-2">
+                            <span class="mr-2 text-xl">🧠</span> Neuroanatomía
+                        </h4>
+                        <p id="modalNeuro" class="text-sm text-indigo-900">Anatomía...</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Modal Footer -->
+            <div class="p-4 bg-slate-50 rounded-b-2xl border-t border-slate-100 text-center">
+                <p class="text-xs text-slate-400">Modelo MIND 2.0 © Torralba 2026</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        
+        <!-- HEADER -->
+        <header class="text-center mb-16 animate-fade-in">
+            <h1 class="text-5xl md:text-6xl font-extrabold mb-4 tracking-tight">
+                <span class="gradient-text">MIND 2.0</span>
+            </h1>
+            <p class="text-2xl font-light text-slate-600 mb-2">Modelo de Integración Neurocognitiva Dinámica</p>
+            <p class="text-sm font-bold text-slate-400 tracking-widest uppercase">Propuesta de modelo para el razonamiento clínico en la formación en Neuropsicología</p>
+            <div class="mt-8 flex justify-center space-x-4">
+                <div class="px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold uppercase tracking-wide border border-blue-200">De Modular a Red</div>
+                <div class="px-4 py-2 bg-cyan-50 text-cyan-700 rounded-full text-xs font-semibold uppercase tracking-wide border border-cyan-200">Interactivo</div>
+            </div>
+            <p class="mt-4 text-xs text-slate-400 italic">(Haz clic en los bloques del diagrama para ver detalles)</p>
+        </header>
+		
+        <!-- SECTION 1: PARADIGM SHIFT -->
+        <section class="mb-20">
+            <div class="text-center mb-10 max-w-3xl mx-auto">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4">El Cambio de Paradigma</h2>
+                <p class="text-slate-600 text-lg">
+                    La neuropsicología clásica veía el cerebro como un conjunto de "cajas estancas". 
+                    El Modelo MIND 2.0 propone una arquitectura basada en redes, donde la función emerge 
+                    de la conectividad y la eficiencia, no solo de la localización.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Old Model Card -->
+                <div class="mind-card p-8 border-l-4 border-slate-300">
+                    <h3 class="text-xl font-bold text-slate-500 mb-4">❌ Modelo Clásico (Modular)</h3>
+                    <ul class="space-y-3 text-slate-600">
+                        <li class="flex items-start"><span class="mr-2">◼️</span> Funciones localizadas rígidamente.</li>
+                        <li class="flex items-start"><span class="mr-2">◼️</span> "Cajones" aislados (Memoria vs Lenguaje).</li>
+                        <li class="flex items-start"><span class="mr-2">◼️</span> Ignora la velocidad de transmisión.</li>
+                    </ul>
+                </div>
+                <!-- MIND 2.0 Card -->
+                <div class="mind-card p-8 border-l-4 border-mind-primary bg-gradient-to-br from-white to-blue-50">
+                    <h3 class="text-xl font-bold text-mind-primary mb-4">✅ MIND 2.0 (Redes)</h3>
+                    <ul class="space-y-3 text-slate-700">
+                        <li class="flex items-start"><span class="mr-2 text-mind-secondary">⚡</span> Funciones como procesos dinámicos.</li>
+                        <li class="flex items-start"><span class="mr-2 text-mind-secondary">⚡</span> Intersecciones y Pasillos (Memoria Verbal).</li>
+                        <li class="flex items-start"><span class="mr-2 text-mind-secondary">⚡</span> Control Transversal (Ejecutivo).</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+		
+
+        <!-- ARCHITECTURE SECTION (UPDATED LAYOUT) -->
+        <section class="mb-20 animate-slide-up">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4">Arquitectura del Sistema</h2>
+                <p class="text-slate-600 max-w-2xl mx-auto">
+                    Estructura jerárquica con output lateral. 
+                    <span class="font-semibold text-blue-600">Haz clic en cada componente para explorar su base científica.</span>
+                </p>
+            </div>
+
+            <!-- CSS GRID LAYOUT FOR ARCHITECTURE -->
+            <div class="max-w-6xl mx-auto">
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    
+                    <!-- LEFT COLUMN (Processing Stack) - Spans 3 columns -->
+                    <div class="lg:col-span-3 space-y-4">
+                        
+                        <!-- Level 5: Cúspide -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div onclick="openModal('razonamiento')" class="logic-block bg-indigo-100 border border-indigo-300 p-4 rounded-lg text-center shadow-sm hover:bg-indigo-50">
+                                <div class="text-2xl mb-1">⚖️</div>
+                                <h4 class="font-bold text-indigo-900">Razonamiento Abstracto</h4>
+                                <p class="text-xs text-indigo-700">Categorización & Lógica</p>
+                            </div>
+                            <div onclick="openModal('social')" class="logic-block bg-purple-100 border border-purple-300 p-4 rounded-lg text-center shadow-sm hover:bg-purple-50">
+                                <div class="text-2xl mb-1">🤝</div>
+                                <h4 class="font-bold text-purple-900">Cognición Social</h4>
+                                <p class="text-xs text-purple-700">ToM & Empatía</p>
+                            </div>
+                        </div>
+
+                        <!-- Level 4: Control (The Roof) -->
+                        <div onclick="openModal('control')" class="logic-block bg-gradient-to-r from-blue-600 to-cyan-500 p-3 rounded-lg text-center shadow-md text-white relative overflow-hidden group">
+                            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                            <h4 class="font-bold uppercase tracking-widest text-sm">SISTEMA DE CONTROL TRANSVERSAL</h4>
+                            <p class="text-xs opacity-90">Inhibición • Flexibilidad • Monitoreo</p>
+                        </div>
+
+                        <!-- Level 3: The Core -->
+                        <div class="grid grid-cols-12 gap-4">
+                            <!-- Memory -->
+                            <div onclick="openModal('memoria')" class="col-span-12 md:col-span-4 logic-block bg-white border-2 border-blue-200 p-4 rounded-lg shadow-sm hover:border-blue-400">
+                                <h4 class="font-bold text-blue-800 text-center mb-2">MEMORIA</h4>
+                                <div class="text-xs text-slate-500 text-center space-y-1">
+                                    <p>Codificación</p>
+                                    <p>Almacenamiento</p>
+                                    <p>Recuperación</p>
+                                </div>
+                            </div>
+                            <!-- Working Memory Hub -->
+                            <div onclick="openModal('mt')" class="col-span-12 md:col-span-4 logic-block bg-cyan-50 border-2 border-cyan-400 p-4 rounded-full flex flex-col items-center justify-center shadow-md z-10 hover:bg-cyan-100 hover:scale-105 transition-transform">
+                                <div class="text-3xl mb-1">⚙️</div>
+                                <h4 class="font-bold text-cyan-900 text-center leading-tight">MEMORIA DE<br>TRABAJO</h4>
+                                <p class="text-[10px] text-cyan-700 mt-1 font-bold">HUB CENTRAL</p>
+                            </div>
+                            <!-- Language -->
+                            <div onclick="openModal('lenguaje')" class="col-span-12 md:col-span-4 logic-block bg-white border-2 border-green-200 p-4 rounded-lg shadow-sm hover:border-green-400">
+                                <h4 class="font-bold text-green-800 text-center mb-2">LENGUAJE</h4>
+                                <div class="text-xs text-slate-500 text-center space-y-1">
+                                    <p>Léxico</p>
+                                    <p>Gramática</p>
+                                    <p>Pragmática</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Level 2: Input & Filter -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div onclick="openModal('percepcion')" class="md:col-span-2 logic-block bg-slate-100 border border-slate-300 p-4 rounded-lg flex items-center justify-between hover:bg-slate-50">
+                                <div>
+                                    <h4 class="font-bold text-slate-700">PERCEPCIÓN (Input)</h4>
+                                    <p class="text-xs text-slate-500">Exterocepción & Somatosensorial</p>
+                                </div>
+                                <div class="text-2xl">👁️ ✋</div>
+                            </div>
+                            <div onclick="openModal('limbico')" class="logic-block bg-red-50 border border-red-200 p-4 rounded-lg flex flex-col justify-center text-center hover:bg-red-100">
+                                <h4 class="font-bold text-red-800 text-sm">SIST. LÍMBICO</h4>
+                                <p class="text-xs text-red-600">Filtro Emocional</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COLUMN (Praxias / Output) - Spans 1 column but full height of processing stack -->
+                    <div class="lg:col-span-1">
+                        <div onclick="openModal('praxias')" class="h-full logic-block bg-amber-50 border-2 border-amber-200 rounded-lg p-4 flex flex-col items-center justify-center shadow-sm relative hover:bg-amber-100 hover:border-amber-300">
+                            <!-- Connector visualization -->
+                            <div class="absolute top-0 left-[-1rem] bottom-0 w-4 border-l-2 border-dashed border-slate-300 lg:block hidden"></div>
+                            
+                            <div class="text-3xl mb-4">🔧</div>
+                            <h3 class="text-xl font-bold text-amber-900 vertical-text mb-2 text-center">PRAXIAS</h3>
+                            <p class="text-xs font-bold text-amber-700 tracking-widest mb-6">OUTPUT MOTOR</p>
+                            
+                            <div class="space-y-3 w-full text-center">
+                                <div class="bg-white/60 p-2 rounded text-xs text-amber-900 font-medium">Ideomotora</div>
+                                <div class="bg-white/60 p-2 rounded text-xs text-amber-900 font-medium">Ideatoria</div>
+                                <div class="bg-white/60 p-2 rounded text-xs text-amber-900 font-medium">Constructiva</div>
+                            </div>
+                            
+                            <div class="mt-8 pt-4 border-t border-amber-200 w-full text-center">
+                                <p class="text-[10px] text-amber-800 leading-tight">
+                                    Conecta Input Somatosensorial con Control Ejecutivo
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BASE (Full Width) -->
+                    <div class="lg:col-span-4">
+                        <div onclick="openModal('atencion')" class="logic-block bg-slate-800 text-white p-6 rounded-lg text-center shadow-lg hover:bg-slate-700 hover:ring-2 ring-blue-400 ring-offset-2">
+                            <h3 class="text-xl font-bold tracking-widest mb-2">ATENCIÓN</h3>
+                            <p class="text-slate-400 text-xs font-semibold max-w-2xl mx-auto leading-relaxed">
+                                <span class="px-2 border-r border-slate-600">SUSTRATO ENERGÉTICO</span>
+                                <span class="px-2 border-r border-slate-600">AROUSAL</span>
+                                <span class="px-2 border-r border-slate-600">SOSTENIDA</span>
+                                <span class="px-2 border-r border-slate-600">SELECTIVA</span>
+                                <span class="px-2 border-r border-slate-600 text-blue-300">ALTERNANTE</span>
+                                <span class="px-2 text-blue-300">DIVIDIDA</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <!-- SECTION 3: DYNAMICS (SPEED) CHART -->
+        <section class="mb-20">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-4">La Dinámica: Velocidad de Procesamiento</h2>
+                    <p class="text-slate-600 mb-6">
+                        No es un "cajón", es la <strong>conductividad</strong> del sistema. Basado en la teoría de Salthouse, 
+                        una baja velocidad provoca que la información en la Memoria de Trabajo decaiga antes de ser procesada.
+                        El paciente "sabe", pero "no llega a tiempo".
+                    </p>
+                    <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                        <p class="text-sm text-blue-800 font-semibold">
+                            💡 Perla Clínica: Si al dar más tiempo el paciente mejora, el fallo no es de capacidad (Memoria), es de conductividad (VP).
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="mind-card p-4">
+                    <h3 class="text-sm font-bold text-slate-500 uppercase mb-4 text-center">Impacto de la VP en el Rendimiento</h3>
+                    <!-- CHART CONTAINER -->
+                    <div class="chart-container">
+                        <canvas id="speedChart"></canvas>
+                    </div>
+                    <p class="text-xs text-center text-slate-400 mt-2">Simulación basada en el modelo de decaimiento temporal.</p>
+                </div>
+            </div>
+        </section>
+		
+		        <div class="section-divider"></div>
+		
+        <!-- SECTION 4: TRANSVERSAL FUNCTIONS (RADAR) -->
+        <section class="mb-20">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold text-slate-800 mb-4">Funciones Transversales</h2>
+                <p class="text-slate-600 max-w-2xl mx-auto">
+                    El "Sistema Operativo" que atraviesa los bloques. Un perfil ejecutivo desequilibrado
+                    puede simular fallos en memoria o lenguaje.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Explainer -->
+                <div class="space-y-4">
+                    <div class="p-4 bg-white rounded-lg shadow-sm border border-slate-100">
+                        <h4 class="font-bold text-indigo-600">🛡️ Inhibición (El Escudo)</h4>
+                        <p class="text-sm text-slate-600">Protege la atención y frena impulsos. Fallo = Distraibilidad.</p>
+                    </div>
+                    <div class="p-4 bg-white rounded-lg shadow-sm border border-slate-100">
+                        <h4 class="font-bold text-cyan-600">🔀 Flexibilidad (El Conmutador)</h4>
+                        <p class="text-sm text-slate-600">Permite cambiar de estrategia. Fallo = Rigidez/Perseveración.</p>
+                    </div>
+                    <div class="p-4 bg-white rounded-lg shadow-sm border border-slate-100">
+                        <h4 class="font-bold text-emerald-600">🔍 Monitoreo (El Espejo)</h4>
+                        <p class="text-sm text-slate-600">Supervisión de calidad online. Fallo = Anosognosia de error.</p>
+                    </div>
+                </div>
+
+                <!-- Radar Chart -->
+                <div class="mind-card p-4">
+                    <h3 class="text-sm font-bold text-slate-500 uppercase mb-2 text-center">Perfil Clínico: Fallo Transversal</h3>
+                    <div class="chart-container">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <!-- SECTION 5: CLINICAL APPLICATION FLOW -->
+        <section class="mb-20">
+            <h2 class="text-3xl font-bold text-slate-800 mb-10 text-center">Guía de Evaluación MIND 2.0</h2>
+            
+            <div class="max-w-3xl mx-auto">
+                <div class="relative border-l-4 border-slate-200 ml-6 space-y-12">
+                    
+                    <!-- Step 1 -->
+                    <div class="relative pl-8">
+                        <div class="absolute -left-[1.35rem] top-0 bg-slate-800 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow">1</div>
+                        <h3 class="text-xl font-bold text-slate-800">Evaluar la Base (Energía)</h3>
+                        <p class="text-slate-600 mt-2">Antes de pasar tests complejos, verifica el Arousal y la Atención Sostenida. Si no hay pila, el juguete no funciona.</p>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="relative pl-8">
+                        <div class="absolute -left-[1.35rem] top-0 bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow">2</div>
+                        <h3 class="text-xl font-bold text-slate-800">Verificar Conductividad (VP)</h3>
+                        <p class="text-slate-600 mt-2">Aplica tareas con y sin presión de tiempo. Diferencia lentitud de incapacidad.</p>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="relative pl-8">
+                        <div class="absolute -left-[1.35rem] top-0 bg-cyan-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow">3</div>
+                        <h3 class="text-xl font-bold text-slate-800">Analizar Intersecciones</h3>
+                        <p class="text-slate-600 mt-2">Si falla la memoria, ¿es visual (Percepción-Memoria) o verbal (Lenguaje-Memoria)? Busca el nodo específico.</p>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div class="relative pl-8">
+                        <div class="absolute -left-[1.35rem] top-0 bg-indigo-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow">4</div>
+                        <h3 class="text-xl font-bold text-slate-800">Revisar Transversalidad</h3>
+                        <p class="text-slate-600 mt-2">¿El paciente se corrige solo? (Monitoreo). ¿Se queda pegado en una idea? (Flexibilidad). Esto explica el fallo funcional.</p>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+		
+	<div class="section-divider"></div>	
+	
+	 <!-- SECTION 6: INSTRUMENTOS DE EVALUACION -->
+	
+	<section class="mb-20 animate-slide-up" id="catalogo-pruebas">
+	    <div class="text-center mb-10">
+	        <span class="px-4 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] font-bold uppercase tracking-widest border border-amber-200">Manual de Instrumentos</span>
+	        <h2 class="text-3xl font-bold text-slate-800 mt-4">Catálogo de Evaluación por Procesos</h2>
+	        <p class="text-slate-500 text-sm mt-2 max-w-2xl mx-auto">Selección de herramientas basada en la evidencia para el rastreo, diagnóstico y perfilado clínico.</p>
+	    </div>
+
+	    <div class="max-w-4xl mx-auto mb-12 bg-red-50 border-l-4 border-red-500 p-6 rounded-r-xl shadow-md">
+	        <div class="flex items-center mb-3">
+	            <span class="text-2xl mr-3">⚠️</span>
+	            <h3 class="text-lg font-bold text-red-900 uppercase tracking-tight">Aviso al Clínico: La Tarea no es el Proceso</h3>
+	        </div>
+	        <p class="text-red-800 text-sm leading-relaxed">
+	            Desde el modelo <strong>MIND 2.0</strong>, recordamos que las pruebas son <strong>tareas complejas</strong> que reclutan diversos nodos de la red. Un fallo en una prueba "ejecutiva" puede estar mediado por un déficit en el sustrato atencional o en la velocidad de procesamiento. <strong>El test no es la panacea;</strong> lo fundamental es el razonamiento clínico, la observación del proceso de ejecución y el dominio profundo de la técnica.
+	        </p>
+	    </div>
+
+	    <div class="max-w-5xl mx-auto space-y-4">
+
+	        <div class="mind-card overflow-hidden">
+	            <button onclick="toggleAccordion('acc-general')" class="w-full p-5 flex justify-between items-center hover:bg-slate-50 transition-all">
+	                <div class="flex items-center">
+	                    <span class="bg-slate-100 p-2 rounded-lg mr-4 text-xl">📋</span>
+	                    <div class="text-left">
+	                        <h4 class="font-bold text-slate-800">Cribado, Baterías y Funcionalidad</h4>
+	                        <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Rendimiento Intelectual y AVD</p>
+	                    </div>
+	                </div>
+	                <svg id="icon-acc-general" class="w-6 h-6 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+	            </button>
+	            <div id="acc-general" class="hidden p-6 bg-slate-50/50 border-t border-slate-100">
+	                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+	                    <div>
+	                        <h5 class="font-bold text-xs text-slate-400 uppercase mb-3">Screening y Generales</h5>
+	                        <ul class="text-sm space-y-2 text-slate-700">
+	                            <li><span class="font-semibold text-blue-600">MOCA / MMSE / ERFC / 7 Minutos:</span> Rastreos rápidos.</li>
+	                            <li><span class="font-semibold text-blue-600">WAIS-IV:</span> Inteligencia General (G).</li>
+	                            <li><span class="font-semibold text-blue-600">Test Barcelona 2 / Luria-Nebraska:</span> Evaluación general.</li>
+	                            <li><span class="font-semibold text-blue-600">Ineco Frontal Screening:</span> Cribado ejecutivo.</li>
+	                        </ul>
+	                    </div>
+	                    <div>
+	                        <h5 class="font-bold text-xs text-slate-400 uppercase mb-3">Funcionalidad (AVD)</h5>
+	                        <ul class="text-sm space-y-2 text-slate-700">
+	                            <li><span class="font-semibold text-emerald-600">Barthel / Lawton y Brody:</span> Básicas e instrumentales.</li>
+	                            <li><span class="font-semibold text-emerald-600">Escala cognitiva AVD:</span> Implicación cognitiva en la vida diaria.</li>
+	                        </ul>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+
+	        <div class="mind-card overflow-hidden">
+	            <button onclick="toggleAccordion('acc-atencion')" class="w-full p-5 flex justify-between items-center hover:bg-slate-50 transition-all">
+	                <div class="flex items-center">
+	                    <span class="bg-blue-100 p-2 rounded-lg mr-4 text-xl">⚡</span>
+	                    <div class="text-left">
+	                        <h4 class="font-bold text-blue-900">Atención, VP y Conciencia</h4>
+	                        <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">El Sustrato Energético</p>
+	                    </div>
+	                </div>
+	                <svg id="icon-acc-atencion" class="w-6 h-6 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+	            </button>
+	            <div id="acc-atencion" class="hidden p-6 bg-blue-50/30 border-t border-blue-100">
+	                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+	                    <div>
+	                        <h5 class="font-bold text-xs text-blue-400 uppercase mb-3">Velocidad y Atención Sostenida</h5>
+	                        <ul class="text-sm space-y-2">
+	                            <li><strong>SDMT / d2:</strong> Velocidad de procesamiento y concentración.</li>
+	                            <li><strong>CPT / Test de la "A":</strong> Atención sostenida y vigilancia.</li>
+	                            <li><strong>PASAT:</strong> Atención dividida y procesamiento secuencial.</li>
+	                        </ul>
+	                    </div>
+	                    <div>
+	                        <h5 class="font-bold text-xs text-blue-400 uppercase mb-3">Atención Compleja y Conciencia</h5>
+	                        <ul class="text-sm space-y-2">
+	                            <li><strong>TMT A y B / Stroop / 5 Dígitos:</strong> Alternancia e inhibición.</li>
+	                            <li><strong>Glasgow / Prigatano:</strong> Nivel de conciencia y autoconciencia de déficits.</li>
+	                        </ul>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+
+	        <div class="mind-card overflow-hidden">
+	            <button onclick="toggleAccordion('acc-nodos')" class="w-full p-5 flex justify-between items-center hover:bg-slate-50 transition-all">
+	                <div class="flex items-center">
+	                    <span class="bg-emerald-100 p-2 rounded-lg mr-4 text-xl">🧠</span>
+	                    <div class="text-left">
+	                        <h4 class="font-bold text-emerald-900">Memoria y Lenguaje</h4>
+	                        <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Procesamiento de Contenidos</p>
+	                    </div>
+	                </div>
+	                <svg id="icon-acc-nodos" class="w-6 h-6 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+	            </button>
+	            <div id="acc-nodos" class="hidden p-6 bg-emerald-50/30 border-t border-emerald-100">
+	                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+	                    <div>
+	                        <h5 class="font-bold text-xs text-emerald-500 uppercase mb-3">Memoria (Verbal y No Verbal)</h5>
+	                        <ul class="text-sm space-y-2">
+	                            <li><strong>TAVEC / RAVL / Buschke:</strong> Aprendizaje verbal.</li>
+	                            <li><strong>WMS-IV:</strong> Memoria lógica, caras y parejas.</li>
+	                            <li><strong>Figura de Rey / Retención de Benton:</strong> Memoria visual.</li>
+	                        </ul>
+	                    </div>
+	                    <div>
+	                        <h5 class="font-bold text-xs text-emerald-500 uppercase mb-3">Lenguaje y Lectoescritura</h5>
+	                        <ul class="text-sm space-y-2">
+	                            <li><strong>Boston / TBR / WAB:</strong> Baterías de afasias.</li>
+	                            <li><strong>Token Test / Pierre Marie:</strong> Comprensión de órdenes.</li>
+	                            <li><strong>PROLEC-R / TALE:</strong> Procesos de lectura y escritura.</li>
+	                        </ul>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+
+	        <div class="mind-card overflow-hidden">
+	            <button onclick="toggleAccordion('acc-exec')" class="w-full p-5 flex justify-between items-center hover:bg-slate-50 transition-all">
+	                <div class="flex items-center">
+	                    <span class="bg-indigo-100 p-2 rounded-lg mr-4 text-xl">⚙️</span>
+	                    <div class="text-left">
+	                        <h4 class="font-bold text-indigo-900">Funciones Ejecutivas (FF.EE.)</h4>
+	                        <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Planificación, Flexibilidad y MT</p>
+	                    </div>
+	                </div>
+	                <svg id="icon-acc-exec" class="w-6 h-6 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+	            </button>
+	            <div id="acc-exec" class="hidden p-6 bg-indigo-50/30 border-t border-indigo-100">
+	                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+	                    <div>
+	                        <h5 class="font-bold text-xs text-indigo-400 uppercase mb-3">Memoria de Trabajo y Razonamiento</h5>
+	                        <ul class="text-sm space-y-2">
+	                            <li><strong>Letras y Números / Dígitos Inversos / N-Back:</strong> MT.</li>
+	                            <li><strong>Matrices / Semejanzas / Refranes:</strong> Razonamiento abstracto.</li>
+	                        </ul>
+	                    </div>
+	                    <div>
+	                        <h5 class="font-bold text-xs text-indigo-400 uppercase mb-3">Planificación y Flexibilidad</h5>
+	                        <ul class="text-sm space-y-2">
+	                            <li><strong>WCST (Wisconsin) / Brixton:</strong> Flexibilidad cognitiva.</li>
+	                            <li><strong>Torres (Hanoi/Londres) / BADS (Zoo):</strong> Planificación.</li>
+	                            <li><strong>Iowa Gambling Task:</strong> Toma de decisiones.</li>
+	                        </ul>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+
+	        <div class="mind-card overflow-hidden">
+	            <button onclick="toggleAccordion('acc-out')" class="w-full p-5 flex justify-between items-center hover:bg-slate-50 transition-all">
+	                <div class="flex items-center">
+	                    <span class="bg-purple-100 p-2 rounded-lg mr-4 text-xl">🤝</span>
+	                    <div class="text-left">
+	                        <h4 class="font-bold text-purple-900">Percepción, Praxias y Cognición Social</h4>
+	                        <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Interacción con el Entorno</p>
+	                    </div>
+	                </div>
+	                <svg id="icon-acc-out" class="w-6 h-6 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+	            </button>
+	            <div id="acc-out" class="hidden p-6 bg-purple-50/30 border-t border-purple-100">
+	                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+	                    <div>
+	                        <h5 class="font-bold text-xs text-purple-400 uppercase mb-3">Percepción y Praxias</h5>
+	                        <ul class="text-sm space-y-2">
+	                            <li><strong>VOSP / Benton (Líneas, Caras):</strong> Gnosias visuales.</li>
+	                            <li><strong>Figura de Rey (Copia) / Reloj:</strong> Visuoconstrucción.</li>
+	                            <li><strong>Upper Face / Tablero Purdue:</strong> Apraxias y destreza motora.</li>
+	                        </ul>
+	                    </div>
+	                    <div>
+	                        <h5 class="font-bold text-xs text-purple-400 uppercase mb-3">Cognición Social y ToM</h5>
+	                        <ul class="text-sm space-y-2">
+	                            <li><strong>Test de Miradas / Ekman:</strong> Reconocimiento emocional.</li>
+	                            <li><strong>Happé (Historias Extrañas) / MASC:</strong> Teoría de la Mente.</li>
+	                            <li><strong>Faux Pas / MINI-SEA:</strong> Comportamiento social y empatía.</li>
+	                        </ul>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+
+	        <div class="mind-card overflow-hidden">
+	            <button onclick="toggleAccordion('acc-val')" class="w-full p-5 flex justify-between items-center hover:bg-slate-50 transition-all">
+	                <div class="flex items-center">
+	                    <span class="bg-red-100 p-2 rounded-lg mr-4 text-xl">🛡️</span>
+	                    <div class="text-left">
+	                        <h4 class="font-bold text-red-900">Validez, Personalidad y Emoción</h4>
+	                        <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Garantía del Proceso</p>
+	                    </div>
+	                </div>
+	                <svg id="icon-acc-val" class="w-6 h-6 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+	            </button>
+	            <div id="acc-val" class="hidden p-6 bg-red-50/30 border-t border-red-100">
+	                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+	                    <div>
+	                        <h5 class="font-bold text-xs text-red-400 uppercase mb-3">Simulación y Validez</h5>
+	                        <ul class="text-sm space-y-2">
+	                            <li><strong>TOMM / SIMS / 15 Ítems de Rey:</strong> Detección de esfuerzo insuficiente.</li>
+	                            <li><strong>Índices Incoherencia (MMPI/WMS-IV):</strong> Consistencia interna.</li>
+	                        </ul>
+	                    </div>
+	                    <div>
+	                        <h5 class="font-bold text-xs text-red-400 uppercase mb-3">Emoción y Personalidad</h5>
+	                        <ul class="text-sm space-y-2">
+	                            <li><strong>Beck (BDI) / Goldberg / STAI:</strong> Depresión y ansiedad.</li>
+	                            <li><strong>MCMI-IV / MMPI-2:</strong> Perfiles de personalidad.</li>
+	                            <li><strong>DEX (BADS) / NPI:</strong> Cambios conductuales.</li>
+	                        </ul>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+
+	    </div>
+	</section>
+
+	<script>
+	    function toggleAccordion(id) {
+	        const content = document.getElementById(id);
+	        const icon = document.getElementById('icon-' + id);
+        
+	        // Cerramos otros si queremos un comportamiento único, o simplemente toggle
+	        if (content.classList.contains('hidden')) {
+	            content.classList.remove('hidden');
+	            content.classList.add('animate-fade-in');
+	            icon.classList.add('rotate-180');
+	        } else {
+	            content.classList.add('hidden');
+	            icon.classList.remove('rotate-180');
+	        }
+	    }
+	</script>
+		
+	<div class="section-divider"></div>	
+		 <!-- BIBLIOGRAFÍA -->
+		
+		<section class="mb-20 animate-slide-up">
+		    <div class="text-center mb-10">
+		        <span class="px-4 py-1 bg-blue-100 text-blue-700 rounded-full text-[10px] font-bold uppercase tracking-widest border border-blue-200">Evidencia Científica 2026</span>
+		        <h2 class="text-3xl font-bold text-slate-800 mt-4">Sustento Teórico Integrador</h2>
+		        <p class="text-slate-500 mt-2 max-w-2xl mx-auto text-sm">Base bibliográfica que soporta la jerarquía y las interconexiones del Modelo de Integración Neurocognitiva Dinámica.</p>
+		    </div>
+
+		    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+		        <div class="space-y-4">
+		            <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2 border-l-2 border-slate-300">1. Axiomas del Sistema</h3>
+		            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-300 transition-all text-xs">
+		                <p class="mb-2"><strong>Damasio, A. R. (1994).</strong> Descartes' Error: Emotion, Reason, and the Human Brain.</p>
+		                <p class="mb-2"><strong>Kaplan, E. (1988).</strong> The process approach to neuropsychological assessment.</p>
+		                <p class="mb-2"><strong>Luria, A. R. (1973).</strong> The working brain: An introduction to neuropsychology.</p>
+		                <p><strong>Sporns, O. (2011).</strong> Networks of the Brain. MIT Press.</p>
+		            </div>
+		        </div>
+
+		        <div class="space-y-4">
+		            <h3 class="text-xs font-black text-blue-400 uppercase tracking-widest pl-2 border-l-2 border-blue-300">2. Atención y Dinámica</h3>
+		            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-300 transition-all text-xs">
+		                <p class="mb-2"><strong>Posner & Petersen (1990).</strong> The attention system of the human brain.</p>
+		                <p class="mb-2"><strong>Corbetta & Shulman (2002).</strong> Control of goal-directed attention.</p>
+		                <p class="mb-2"><strong>Salthouse, T. A. (1996).</strong> Processing-speed theory of adult age differences.</p>
+		                <p><strong>Sohlberg & Mateer (2001).</strong> Cognitive rehabilitation: An integrative approach.</p>
+		            </div>
+		        </div>
+
+		        <div class="space-y-4 md:col-span-2 lg:col-span-1">
+		            <h3 class="text-xs font-black text-indigo-400 uppercase tracking-widest pl-2 border-l-2 border-indigo-300">3. El Núcleo Ejecutivo</h3>
+		            <div class="bg-indigo-50/30 p-4 rounded-xl border border-indigo-100 shadow-sm hover:border-indigo-300 transition-all text-xs">
+		                <p class="mb-2"><strong>Diamond, A. (2013).</strong> Executive functions. <em>Annual Review of Psychology</em>.</p>
+		                <p class="mb-2"><strong>Stuss, D. T. (2011).</strong> Functions of the frontal lobes: Relation to EF.</p>
+		                <p class="mb-2"><strong>Norman & Shallice (1986).</strong> Attention to action (SAS Model).</p>
+		                <p class="mb-2"><strong>Miyake, A., et al. (2000).</strong> The unity and diversity of EF.</p>
+		                <p class="mb-2"><strong>Barkley, R. A. (1997).</strong> ADHD and the nature of self-control.</p>
+		                <p><strong>Braver, T. S. (2012).</strong> Dual mechanisms of cognitive control.</p>
+		            </div>
+		        </div>
+
+		        <div class="space-y-4">
+		            <h3 class="text-xs font-black text-cyan-400 uppercase tracking-widest pl-2 border-l-2 border-cyan-300">4. Memoria y Hub Central</h3>
+		            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-300 transition-all text-xs">
+		                <p class="mb-2"><strong>Baddeley, A. D. (2000).</strong> The episodic buffer (Working Memory).</p>
+		                <p class="mb-2"><strong>Squire, L. R. (2004).</strong> Memory systems of the brain.</p>
+		                <p><strong>Tulving, E. (1985).</strong> Elements of episodic memory.</p>
+		            </div>
+		        </div>
+
+		        <div class="space-y-4">
+		            <h3 class="text-xs font-black text-purple-400 uppercase tracking-widest pl-2 border-l-2 border-purple-300">5. Salida y Social</h3>
+		            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-300 transition-all text-xs">
+		                <p class="mb-2"><strong>Hickok & Poeppel (2007).</strong> Cortical organization of speech (Dual Stream).</p>
+		                <p class="mb-2"><strong>Frith & Frith (2006).</strong> The neural basis of mentalizing.</p>
+		                <p><strong>Rothi & Heilman (1997).</strong> Apraxia: The neuropsychology of action.</p>
+		            </div>
+		        </div>
+
+		        <div class="space-y-4">
+		            <h3 class="text-xs font-black text-emerald-400 uppercase tracking-widest pl-2 border-l-2 border-emerald-300">6. Percepción e Input</h3>
+		            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-300 transition-all text-xs">
+		                <p class="mb-2"><strong>Friston, K. (2010).</strong> The free-energy principle (Predictive Brain).</p>
+		                <p><strong>Ungerleider & Mishkin (1982).</strong> Two cortical visual systems.</p>
+		            </div>
+		        </div>
+
+		    </div>
+    
+	
+    <div class="section-divider"></div>
+
+         <!-- SECTION: ATLAS DE PERFILES -->
+         <section class="mb-20 animate-slide-up" id="atlas-perfiles">
+             <div class="text-center mb-10">
+                 <span class="px-4 py-1 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 inline-block">Diagnóstico Diferencial</span>
+                 <h2 class="text-3xl font-bold text-slate-800">Atlas Interactivo de Perfiles Clínicos</h2>
+             </div>
+
+             <!-- ADVERTENCIA DE HETEROGENEIDAD -->
+             <div class="max-w-4xl mx-auto mb-10 bg-amber-50 border-l-4 border-amber-400 p-6 rounded-r-xl shadow-sm">
+                 <div class="flex items-center mb-2">
+                     <span class="text-2xl mr-3">⚠️</span>
+                     <h3 class="text-lg font-bold text-amber-900 uppercase">Nota sobre Heterogeneidad Clínica</h3>
+                 </div>
+                 <p class="text-amber-800 text-sm leading-relaxed">
+                     Los perfiles que se presentan a continuación son <strong>modelos típicos e ideales</strong> basados en la evidencia promedio. Sin embargo, en la práctica clínica real, "no existen enfermedades, sino pacientes". Factores como la reserva cognitiva, la localización exacta de la lesión y la comorbilidad pueden alterar significativamente estos gráficos. Utilice estos perfiles como guía de sospecha, nunca como sustituto del juicio clínico individualizado.
+                 </p>
+             </div>
+
+             <!-- PATHOLOGY SELECTOR -->
+             <div class="mb-8 flex flex-wrap justify-center gap-2">
+                 <button onclick="updateAtlas('alzheimer')" id="btn-alzheimer" class="px-3 py-2 rounded-lg text-xs font-semibold border transition-all active-tab">Alzheimer</button>
+                 <button onclick="updateAtlas('parkinson')" id="btn-parkinson" class="px-3 py-2 rounded-lg text-xs font-semibold border transition-all">Parkinson</button>
+                 <button onclick="updateAtlas('em')" id="btn-em" class="px-3 py-2 rounded-lg text-xs font-semibold border transition-all">Esc. Múltiple</button>
+                 <button onclick="updateAtlas('tce')" id="btn-tce" class="px-3 py-2 rounded-lg text-xs font-semibold border transition-all">TCE (Fronto-temp)</button>
+                 <button onclick="updateAtlas('acmi')" id="btn-acmi" class="px-3 py-2 rounded-lg text-xs font-semibold border transition-all">Ictus ACMI</button>
+                 <button onclick="updateAtlas('acmd')" id="btn-acmd" class="px-3 py-2 rounded-lg text-xs font-semibold border transition-all">Ictus ACMD</button>
+                 <button onclick="updateAtlas('huntington')" id="btn-huntington" class="px-3 py-2 rounded-lg text-xs font-semibold border transition-all">Huntington</button>
+                 <button onclick="updateAtlas('ansiedad')" id="btn-ansiedad" class="px-3 py-2 rounded-lg text-xs font-semibold border transition-all">Ansiedad</button>
+                 <button onclick="updateAtlas('depresion')" id="btn-depresion" class="px-3 py-2 rounded-lg text-xs font-semibold border transition-all">Depresión</button>
+             </div>
+
+             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                 <div class="lg:col-span-7 mind-card p-8">
+                     <h3 class="text-xl font-bold text-slate-800 mb-6" id="chart-title">Firma Neurocognitiva: Alzheimer</h3>
+                     <div class="radar-container"><canvas id="atlasRadarChart"></canvas></div>
+                 </div>
+                 <div class="lg:col-span-5 space-y-6">
+                     <div class="mind-card p-6 bg-blue-50/30">
+                         <h4 class="text-xs font-black text-blue-600 uppercase mb-2 tracking-widest">Análisis MIND 2.0</h4>
+                         <p id="clinical-analysis" class="text-sm text-slate-600 leading-relaxed italic">Cargando...</p>
+                     </div>
+                     <div class="mind-card p-6 border-l-4 border-indigo-500">
+                         <h4 class="text-xs font-black text-slate-400 uppercase mb-3">Hallazgos en Evaluación</h4>
+                         <ul id="clinical-findings" class="text-sm text-slate-700 space-y-2"></ul>
+                     </div>
+                     <div class="mind-card p-6 bg-slate-900 text-white">
+                         <h4 class="text-[10px] font-black text-blue-400 uppercase mb-3">Sustento Bibliográfico</h4>
+                         <div id="biblio-list" class="text-[10px] space-y-1 opacity-80 italic"></div>
+                     </div>
+                 </div>
+             </div>
+         </section>
+
+         <div class="section-divider"></div>
+	
+	
+	
+	
+		    <div class="mt-12 bg-slate-900 rounded-2xl p-8 text-center text-white shadow-xl relative overflow-hidden">
+		        <div class="absolute top-0 right-0 p-4 opacity-10">
+		            <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 20 20"><path d="M9 4.804A7.994 7.994 0 005.5 4c-1.255 0-2.435.292-3.483.804v10.196a7.994 7.994 0 013.483-.804c1.511 0 2.91.463 4.066 1.256a8.013 8.013 0 004.184-1.256 7.996 7.996 0 013.483.804V4.804A7.994 7.994 0 0014.5 4c-1.255 0-2.435.292-3.483.804V15.011a7.969 7.969 0 01-2.017-.209V4.804z"></path></svg>
+		        </div>
+		        <h4 class="text-xl font-bold mb-2 uppercase tracking-tighter">Compromiso con el Rigor Científico</h4>
+		        <p class="text-slate-400 text-sm max-w-xl mx-auto mb-6">El Modelo MIND 2.0 es una estructura viva. Cada bloque está referenciado para garantizar que la práctica clínica del 2026 se base en evidencia, no en intuición.</p>
+		        <button class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-full font-bold text-xs transition-colors">DESCARGAR MANUAL COMPLETO (PDF)</button>
+		    </div>
+		</section>
+
+        <!-- FOOTER -->
+        <footer class="text-center text-slate-400 text-sm py-8 border-t border-slate-200">
+            <p>© 2026 MIND 2.0 - J.M.Torralba</p>
+			<a href="http://www.josemariatorralba.com">www.josemariatorralba.com</a>
+            <p>Infografía Interactiva para docencia en Evaluación Neuropsicológica.</p>
+        </footer>
+
+    </div>
+
+    <!-- DATA & LOGIC -->
+	
+	
+	
+    <script>
+        // --- DATA FOR POPUPS ---
+        const modalData = {
+            'razonamiento': {
+                title: "Razonamiento Abstracto",
+                subtitle: "Integración Superior",
+                desc: "Capacidad de alto orden para formar conceptos, categorizar, deducir reglas lógicas y resolver problemas novedosos (Inteligencia Fluida). Requiere la integración masiva de información.",
+                models: "Cattell-Horn-Carroll (Gf), Teoría de Redes de Demanda Múltiple (Duncan).",
+                neuro: "Córtex Prefrontal Dorsolateral (CPFDL) bilateral y Red Fronto-Parietal."
+            },
+            'social': {
+                title: "Cognición Social",
+                subtitle: "Integración Superior",
+                desc: "Procesamiento de información interpersonal. Incluye la Teoría de la Mente (inferir estados mentales), la Empatía (resonancia emocional) y el juicio moral.",
+                models: "Baron-Cohen (ToM), Modelo de Percepción Social de Adolphs.",
+                neuro: "Córtex Prefrontal Medial, Sulcus Temporal Superior, Unión Temporoparietal, Amígdala."
+            },
+            'control': {
+                title: "Sistema de Control Transversal",
+                subtitle: "Funciones Ejecutivas",
+                desc: "No es un bloque, son procesos que 'atraviesan' el resto. <br><b>Inhibición:</b> Freno atencional y conductual.<br><b>Flexibilidad:</b> Cambio de criterio (Set-shifting).<br><b>Monitoreo:</b> Supervisión de calidad y detección de errores.",
+                models: "Miyake & Friedman (Unidad y Diversidad), Stuss (Procesos Frontales), Norman & Shallice (SAS).",
+                neuro: "Redes Fronto-Estriadas, Cingulado Anterior (Monitoreo), Giro Frontal Inferior (Inhibición)."
+            },
+            'memoria': {
+                title: "Memoria",
+                subtitle: "Núcleo de Procesamiento",
+                desc: "Sistema dinámico de Codificación, Almacenamiento y Recuperación (C-A-R). Se divide en contenidos (Episódica vs Semántica) y modalidades (Verbal vs Visual) según su intersección con Lenguaje o Percepción.",
+                models: "Tulving (Sistemas de Memoria), Squire (Declarativa vs No Declarativa).",
+                neuro: "Lóbulo Temporal Medial (Hipocampo, Entorrinal), Diencéfalo, Córtex Prefrontal (Recuperación)."
+            },
+            'lenguaje': {
+                title: "Lenguaje",
+                subtitle: "Núcleo de Procesamiento",
+                desc: "Sistema de códigos para la comunicación. Incluye Fonología (sonidos), Léxico (palabras), Gramática (reglas) y Pragmática (uso social).",
+                models: "Wernicke-Geschwind (Clásico), Modelos de Doble Vía (Hickok & Poeppel).",
+                neuro: "Área Perisilviana Izquierda (Broca, Wernicke, Giro Supramarginal, Fascículo Arqueado)."
+            },
+            'mt': {
+                title: "Memoria de Trabajo",
+                subtitle: "Hub Central",
+                desc: "El 'escenario' mental donde se mantiene y manipula información temporalmente. Es el puente entre Percepción, Memoria a Largo Plazo y Acción.",
+                models: "Baddeley & Hitch (Búfer Episódico, Bucle Fonológico, Agenda Visuoespacial).",
+                neuro: "Red Fronto-Parietal Dorsal, Córtex Prefrontal Dorsolateral."
+            },
+            'percepcion': {
+                title: "Percepción",
+                subtitle: "Input Sensorial",
+                desc: "Entrada y organización de estímulos. <br><b>Exterocepción:</b> Visual/Auditiva. <br><b>Somatosensorial:</b> Propiocepción, tacto y esquema corporal (vital para Praxias).",
+                models: "Vías del Qué (Ventral) y Dónde/Cómo (Dorsal) de Ungerleider & Mishkin.",
+                neuro: "Córtex Occipital, Temporal Inferior, Parietal Superior y Post-central."
+            },
+            'limbico': {
+                title: "Sistema Límbico",
+                subtitle: "Filtro Emocional",
+                desc: "Asigna valencia (valor) a la información. Determina qué se recuerda (consolidación) y qué se atiende según su relevancia emocional.",
+                models: "Hipótesis del Marcador Somático (Damasio), Circuito de Papez.",
+                neuro: "Amígdala, Hipocampo, Córtex Orbitofrontal, Cingulado."
+            },
+            'praxias': {
+                title: "Praxias",
+                subtitle: "Output Motor",
+                desc: "Habilidad para ejecutar movimientos programados e intencionales. Requiere input Somatosensorial (saber dónde está el cuerpo) y plan Ejecutivo. <br>Tipos: Ideomotora, Ideatoria, Constructiva.",
+                models: "Luria (3ª Unidad Funcional), Modelo de Liepmann.",
+                neuro: "Lóbulo Parietal Izquierdo (Almacén de engramas/Fórmulas de movimiento) y Lóbulo Frontal (Ejecución)."
+            },
+            'atencion': {
+                title: "Atención",
+                subtitle: "Sustrato Energético",
+                desc: "Base piramidal de la cognición. <br><b>Arousal:</b> Alerta. <br><b>Sostenida:</b> Vigilancia. <br><b>Selectiva:</b> Filtro. <br><b>Alternante:</b> Cambio de foco. <br><b>Dividida:</b> Doble tarea.",
+                models: "Redes Atencionales de Posner & Petersen (Alerta, Orientación, Ejecutivo), Modelo de Sohlberg & Mateer.",
+                neuro: "SARA (Tronco), Tálamo, Córtex Parietal Derecho, Cingulado Anterior."
+            }
+        };
+
+        // --- MODAL LOGIC ---
+        const modal = document.getElementById('infoModal');
+        const content = document.getElementById('modalContent');
+
+        function openModal(key) {
+            const data = modalData[key];
+            if (!data) return;
+
+            // Populate data
+            document.getElementById('modalTitle').innerText = data.title;
+            document.getElementById('modalSubtitle').innerText = data.subtitle;
+            document.getElementById('modalDesc').innerHTML = data.desc;
+            document.getElementById('modalModels').innerHTML = data.models;
+            document.getElementById('modalNeuro').innerHTML = data.neuro;
+
+            // Show modal
+            modal.classList.remove('hidden');
+            // Small delay to allow display:block to apply before opacity transition
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal(event) {
+            // Close only if clicking backdrop or close button logic
+            if (event.target === modal) {
+                forceCloseModal();
+            }
+        }
+
+        function forceCloseModal() {
+            modal.classList.add('opacity-0');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // --- CHART JS LOGIC ---
+        // Helper: Label wrapping
+        function formatLabel(str, maxwidth) {
+            const words = str.split(" ");
+            const sections = [];
+            let temp = "";
+            words.forEach((item, index) => {
+                if ((temp + item).length > maxwidth) {
+                    sections.push(temp.trim());
+                    temp = item + " ";
+                } else {
+                    temp += item + " ";
+                }
+                if (index === words.length - 1) sections.push(temp.trim());
+            });
+            return sections;
+        }
+
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        title: (tooltipItems) => {
+                            const label = tooltipItems[0].chart.data.labels[tooltipItems[0].dataIndex];
+                            return Array.isArray(label) ? label.join(' ') : label;
+                        }
+                    },
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                    padding: 12,
+                    cornerRadius: 8,
+                },
+                legend: { labels: { font: { family: 'Inter', size: 11 }, color: '#64748b' } }
+            }
+        };
+
+        // Chart 1: Speed
+        new Chart(document.getElementById('speedChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Tarea Simple', 'Tarea Compleja', 'Doble Tarea'],
+                datasets: [
+                    { label: 'Alta VP (Sano)', data: [95, 88, 75], backgroundColor: '#3b82f6', borderRadius: 4 },
+                    { label: 'Baja VP (Déficit)', data: [85, 45, 20], backgroundColor: '#94a3b8', borderRadius: 4 }
+                ]
+            },
+            options: {
+                ...commonOptions,
+                scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
+            }
+        });
+
+        // Chart 2: Radar
+        const radarLabels = ['Inhibición', 'Flexibilidad', 'Monitoreo', 'Memoria Trabajo', 'Velocidad'].map(l => formatLabel(l, 10));
+        new Chart(document.getElementById('radarChart'), {
+            type: 'radar',
+            data: {
+                labels: radarLabels,
+                datasets: [
+                    {
+                        label: 'Perfil Dis ejecutivo',
+                        data: [30, 40, 20, 60, 80],
+                        backgroundColor: 'rgba(6, 182, 212, 0.2)',
+                        borderColor: '#06b6d4',
+                        pointBackgroundColor: '#06b6d4',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Normativo',
+                        data: [70, 70, 70, 70, 70],
+                        borderColor: '#cbd5e1',
+                        borderDash: [5, 5],
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                ...commonOptions,
+                scales: { r: { angleLines: { color: '#e2e8f0' }, grid: { color: '#f1f5f9' }, suggestedMin: 0, suggestedMax: 100 } }
+            }
+        });
+		
+		// Chart 3: Atlas
+// --- LOGICA DEL ATLAS (AÑADIR AQUÍ) ---
+        const atlasData = {
+            alzheimer: { values: [15, 35, 85, 60, 40, 75, 45, 70], analysis: "Fallo primario de almacén hipocampal. La información no se consolida.", findings: ["Amnesia anterógrada", "Anomia semántica", "Visuoconstrucción deficitaria"], biblio: ["McKhann (2011)"] },
+            parkinson: { values: [55, 80, 50, 45, 85, 30, 50, 35], analysis: "Disfunción fronto-subcortical. Fallo de acceso, no de almacén.", findings: ["Bradifrenia", "Mejora con claves", "Rigidez cognitiva"], biblio: ["Postuma (2015)"] },
+            em: { values: [70, 85, 45, 65, 80, 70, 75, 20], analysis: "Patología de la conductividad (Sustancia Blanca). Ralentización.", findings: ["Déficit en VP", "Fatiga cognitiva", "Atención dividida"], biblio: ["Benedict (2006)"] },
+            tce: { values: [75, 75, 90, 15, 85, 80, 20, 60], analysis: "Desconexión ejecutiva masiva por daño frontal.", findings: ["Desinhibición", "Anosognosia", "Fallo en Cognición Social"], biblio: ["Stuss (2011)"] },
+            acmi: { values: [70, 10, 60, 50, 85, 25, 75, 55], analysis: "Colapso del nodo de lenguaje (Hemisferio Izquierdo).", findings: ["Afasia marcada", "Apraxia ideomotora", "Memoria verbal"], biblio: ["Hillis (2007)"] },
+            acmd: { values: [80, 80, 50, 40, 15, 60, 30, 50], analysis: "Fallo perceptivo-espacial y pragmática social.", findings: ["Heminegligencia", "Aprosodia", "Reconocimiento emocional"], biblio: ["Mesulam (1999)"] },
+            huntington: { values: [40, 85, 50, 20, 80, 35, 30, 40], analysis: "Caos inhibitorio por degeneración estriatal.", findings: ["Fallo procedimental", "Disfunción ejecutiva", "Cambios conductuales"], biblio: ["Ross (2011)"] },
+            ansiedad: { values: [90, 95, 30, 50, 95, 95, 70, 80], analysis: "Saturación atencional por ruido emocional (Hipervigilancia).", findings: ["Déficit atención sostenida", "Fallo de codificación", "Sesgo de amenaza"], biblio: ["Robinson (2013)"] },
+            depresion: { values: [60, 90, 40, 50, 85, 80, 45, 25], analysis: "Hipometabolismo y bradipsiquia (Pseudo-demencia).", findings: ["Lentitud motora", "Abulia cognitiva", "Fallo recuperación"], biblio: ["Disner (2011)"] }
+        };
+
+        let atlasRadar;
+
+        // Función para inicializar el Atlas
+        function initAtlas() {
+            const ctxAtlas = document.getElementById('atlasRadarChart');
+            if(!ctxAtlas) return;
+
+            atlasRadar = new Chart(ctxAtlas.getContext('2d'), {
+                type: 'radar',
+                data: {
+                    labels: ['Memoria', 'Lenguaje', 'Atención', 'Ejecutivas', 'Percepción', 'Praxias', 'Social', 'V. Proc'],
+                    datasets: [{ 
+                        label: 'Perfil Clínico', 
+                        data: atlasData.alzheimer.values, 
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)', 
+                        borderColor: '#3b82f6', 
+                        borderWidth: 3 
+                    }]
+                },
+                options: { ...commonOptions, scales: { r: { suggestedMin: 0, suggestedMax: 100 } } }
+            });
+            updateAtlasUI('alzheimer');
+        }
+
+        // Función global para los botones
+        window.updateAtlas = function(key) {
+            if (!atlasRadar) return;
+            atlasRadar.data.datasets[0].data = atlasData[key].values;
+            atlasRadar.update();
+            updateAtlasUI(key);
+            
+            document.querySelectorAll('button[id^="btn-"]').forEach(b => b.classList.remove('bg-blue-600', 'text-white'));
+            document.getElementById('btn-' + key).classList.add('bg-blue-600', 'text-white');
+        };
+
+        function updateAtlasUI(key) {
+            const d = atlasData[key];
+            document.getElementById('chart-title').innerText = "Firma: " + key.toUpperCase();
+            document.getElementById('clinical-analysis').innerText = d.analysis;
+            document.getElementById('clinical-findings').innerHTML = d.findings.map(f => `<li>• ${f}</li>`).join('');
+            document.getElementById('biblio-list').innerHTML = d.biblio.map(b => `<p>→ ${b}</p>`).join('');
+        }
+
+        // Ejecutar inicialización del Atlas
+        initAtlas();
+    </script>
+</body>
+</html>
